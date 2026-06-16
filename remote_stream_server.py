@@ -16,9 +16,8 @@ SNAPSHOT_ROOT = OUTPUT_ROOT / "snapshot"
 COLOR_DIR = SNAPSHOT_ROOT / "color"
 DEPTH_VIS_DIR = SNAPSHOT_ROOT / "depth_vis"
 DEPTH_RAW_DIR = SNAPSHOT_ROOT / "depth_raw"
-LOG_3D_DIR = SNAPSHOT_ROOT / "log_3d"
 
-for d in [BAG_DIR, MP4_DIR, COLOR_DIR, DEPTH_VIS_DIR, DEPTH_RAW_DIR, LOG_3D_DIR]:
+for d in [BAG_DIR, MP4_DIR, COLOR_DIR, DEPTH_VIS_DIR, DEPTH_RAW_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 # 變數
@@ -132,8 +131,6 @@ def start():
                 if cmd == 's':
                     f_name = f"snapshot_{ts}_color.png"
                     cv2.imwrite(str(COLOR_DIR / f_name), color_img)
-                    with open(LOG_3D_DIR / f"snapshot_{ts}_3d.txt", "w") as f_log:
-                        f_log.write(f"Coord: {coord_text}\nRaw Depth: {depth_mm}mm")
                     if current_conn: send_packet(current_conn, 2, f"Saved: {f_name}".encode())
                 
                 elif cmd == 'r':

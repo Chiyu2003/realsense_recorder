@@ -28,9 +28,8 @@ SNAPSHOT_ROOT = OUTPUT_ROOT / "snapshot"
 COLOR_DIR = SNAPSHOT_ROOT / "color"
 DEPTH_VIS_DIR = SNAPSHOT_ROOT / "depth_vis"
 DEPTH_RAW_DIR = SNAPSHOT_ROOT / "depth_raw"
-LOG_3D_DIR = SNAPSHOT_ROOT / "log_3d"
 
-for d in [BAG_DIR, MP4_DIR, COLOR_DIR, DEPTH_VIS_DIR, DEPTH_RAW_DIR, LOG_3D_DIR]:
+for d in [BAG_DIR, MP4_DIR, COLOR_DIR, DEPTH_VIS_DIR, DEPTH_RAW_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 
@@ -151,11 +150,9 @@ try:
         center_depth_mm = depth_img_raw[CENTER_Y, CENTER_X]
         center_depth_meters = center_depth_mm / 1000.0
 
-        x_m, y_m, z_m = 0.0, 0.0, 0.0
         if intrinsics is not None and center_depth_meters > 0:
             point = rs.rs2_deproject_pixel_to_point(intrinsics, [CENTER_X, CENTER_Y], center_depth_meters)
             coord_text = f"Center 3D: X={point[0]:.3f}m, Y={point[1]:.3f}m, Z={point[2]:.3f}m"
-            x_m, y_m, z_m = point[0], point[1], point[2]
         elif intrinsics is None:
             coord_text = "Center 3D: Waiting for intrinsics"
         else:
@@ -195,12 +192,6 @@ try:
             cv2.imwrite(str(COLOR_DIR / f"snapshot_{ts_str}_color_marked.png"), color_img_marked)
             cv2.imwrite(str(DEPTH_VIS_DIR / f"snapshot_{ts_str}_depth_vis_marked.png"), depth_colormap_marked)
             np.save(str(DEPTH_RAW_DIR / f"snapshot_{ts_str}_depth_raw.npy"), depth_img_raw)
-            with open(LOG_3D_DIR / f"snapshot_{ts_str}_3d_log.txt", "w") as f_log:
-                f_log.write(f"Timestamp: {ts_str}\nRaw Depth: {center_depth_mm} mm\n")
-                if intrinsics is not None and center_depth_meters > 0:
-                    f_log.write(f"X = {x_m:.6f}\nY = {y_m:.6f}\nZ = {z_m:.6f}\n")
-                else:
-                    f_log.write("3D Coordinate: Pending/Invalid\n")
             print(f"💾 [Remote/Local 拍照成功] 標記: {ts_str}")
             
         elif active_cmd == 'r':
