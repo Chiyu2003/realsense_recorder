@@ -1,0 +1,17 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+
+.venv/
+venv/
+rs_env/
+
+dataset/
+output/
+*.bag
+*.mp4
+*.mov
+*.avi
+
+*.npy
+*.log
