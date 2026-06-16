@@ -121,6 +121,19 @@ source .venv/bin/activate
 python realsense_recorder.py
 ```
 
+By default the recorder tries `high` mode first, then falls back to `safe` mode
+if the camera fails to start:
+
+- `high`: depth `640x480@30`, color `1280x720@30`
+- `safe`: depth `640x480@30`, color `640x480@30`
+
+If the camera is visible in macOS but fails at stream startup, skip directly to
+safe mode:
+
+```bash
+REALSENSE_STREAM_PROFILE=safe python realsense_recorder.py
+```
+
 Keyboard controls in the OpenCV window:
 
 - `s`: take snapshot

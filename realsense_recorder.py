@@ -41,15 +41,71 @@ def handle_shutdown_signal(signum, frame):
 signal.signal(signal.SIGINT, handle_shutdown_signal)
 signal.signal(signal.SIGTERM, handle_shutdown_signal)
 
-# 2. 官方黃金硬體配置
+# 2. RealSense stream profiles. Try high quality first, then fall back if USB is unstable.
 pipeline = rs.pipeline()
-config = rs.config()
-config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 30)
+STREAM_PROFILES = [
+    {"name": "high", "depth": (640, 480, 30), "color": (1280, 720, 30)},
+    {"name": "safe", "depth": (640, 480, 30), "color": (640, 480, 30)},
+]
+REQUESTED_STREAM_PROFILE = os.environ.get("REALSENSE_STREAM_PROFILE", "auto").lower()
 
 colorizer = rs.colorizer()
-CENTER_X = 640
-CENTER_Y = 360
+
+
+def make_config(profile):
+    config = rs.config()
+    depth_w, depth_h, depth_fps = profile["depth"]
+    color_w, color_h, color_fps = profile["color"]
+    config.enable_stream(rs.stream.depth, depth_w, depth_h, rs.format.z16, depth_fps)
+    config.enable_stream(rs.stream.color, color_w, color_h, rs.format.bgr8, color_fps)
+    return config
+
+
+def reset_realsense_devices():
+    try:
+        devices = rs.context().query_devices()
+        if len(devices) == 0:
+            return False
+        print("🔄 [硬體重置] 正在送出 RealSense hardware reset...")
+        for dev in devices:
+            dev.hardware_reset()
+        time.sleep(5.0)
+        return True
+    except Exception as e:
+        print(f"⚠️ [硬體重置] 無法 reset RealSense: {e}")
+        return False
+
+
+def start_pipeline_with_fallback():
+    last_error = None
+    max_retries = 3
+    profiles = STREAM_PROFILES
+    if REQUESTED_STREAM_PROFILE != "auto":
+        profiles = [p for p in STREAM_PROFILES if p["name"] == REQUESTED_STREAM_PROFILE]
+        if not profiles:
+            valid_names = ", ".join(["auto"] + [p["name"] for p in STREAM_PROFILES])
+            raise RuntimeError(f"Invalid REALSENSE_STREAM_PROFILE={REQUESTED_STREAM_PROFILE}. Use: {valid_names}")
+
+    for stream_profile in profiles:
+        config = make_config(stream_profile)
+        for attempt in range(1, max_retries + 1):
+            try:
+                print(
+                    f"⏳ [硬體初始化] 嘗試 {stream_profile['name']} profile "
+                    f"(第 {attempt}/{max_retries} 次)..."
+                )
+                active_profile = pipeline.start(config)
+                print(f"🟢 硬體握手成功！使用 {stream_profile['name']} profile。")
+                return active_profile, stream_profile
+            except RuntimeError as e:
+                last_error = e
+                print(f"⚠️ 啟動失敗: {e}")
+                if attempt == 1:
+                    reset_realsense_devices()
+                else:
+                    time.sleep(1.0)
+        print(f"⚠️ {stream_profile['name']} profile 失敗，嘗試下一個設定...")
+    raise RuntimeError("RealSense 啟動失敗：所有解析度設定都無法開始串流。") from last_error
 
 def get_timestamp_str():
     now = datetime.datetime.now()
@@ -88,19 +144,8 @@ def socket_server_worker():
 remote_cmd_queue = []
 
 try:
-    max_retries = 5
-    for attempt in range(1, max_retries + 1):
-        try:
-            print(f"⏳ [硬體初始化] 正在嘗試喚醒 RealSense D435 相機 (第 {attempt}/{max_retries} 次)...")
-            profile = pipeline.start(config)
-            pipeline_started = True
-            print("🟢 硬體握手成功！供電狀態正常。")
-            break
-        except RuntimeError as e:
-            if attempt == max_retries:
-                raise RuntimeError(f"已連續重試 {max_retries} 次皆失敗，M1 底層 USB 供電已鎖死。") from e
-            print("⚠️ 供電超時或拒絕，正在進行底層通訊重置，1 秒後自動重試...")
-            time.sleep(1.0)
+    profile, selected_stream_profile = start_pipeline_with_fallback()
+    pipeline_started = True
 
     align = rs.align(rs.stream.color)
 
@@ -147,11 +192,14 @@ try:
         depth_img_raw = np.asanyarray(depth_frame.get_data())
         depth_colormap_raw = np.asanyarray(colorizer.colorize(depth_frame).get_data())
 
-        center_depth_mm = depth_img_raw[CENTER_Y, CENTER_X]
+        img_h, img_w = depth_img_raw.shape[:2]
+        center_x = img_w // 2
+        center_y = img_h // 2
+        center_depth_mm = depth_img_raw[center_y, center_x]
         center_depth_meters = center_depth_mm / 1000.0
 
         if intrinsics is not None and center_depth_meters > 0:
-            point = rs.rs2_deproject_pixel_to_point(intrinsics, [CENTER_X, CENTER_Y], center_depth_meters)
+            point = rs.rs2_deproject_pixel_to_point(intrinsics, [center_x, center_y], center_depth_meters)
             coord_text = f"Center 3D: X={point[0]:.3f}m, Y={point[1]:.3f}m, Z={point[2]:.3f}m"
         elif intrinsics is None:
             coord_text = "Center 3D: Waiting for intrinsics"
@@ -160,8 +208,8 @@ try:
 
         color_img_marked = color_img_raw.copy()
         depth_colormap_marked = depth_colormap_raw.copy()
-        cv2.drawMarker(color_img_marked, (CENTER_X, CENTER_Y), (0, 255, 0), cv2.MARKER_CROSS, 25, 2)
-        cv2.drawMarker(depth_colormap_marked, (CENTER_X, CENTER_Y), (0, 255, 0), cv2.MARKER_CROSS, 25, 2)
+        cv2.drawMarker(color_img_marked, (center_x, center_y), (0, 255, 0), cv2.MARKER_CROSS, 25, 2)
+        cv2.drawMarker(depth_colormap_marked, (center_x, center_y), (0, 255, 0), cv2.MARKER_CROSS, 25, 2)
         
         preview_color = cv2.resize(color_img_marked, (640, 360))
         preview_depth = cv2.resize(depth_colormap_marked, (640, 360))

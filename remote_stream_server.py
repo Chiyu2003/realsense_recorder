@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import pyrealsense2 as rs
 import datetime
+import os
 import time
 import threading
 import socket
@@ -29,8 +30,64 @@ current_conn = None
 intrinsics = None
 current_bag_path = None
 
-CENTER_X = 640
-CENTER_Y = 360
+STREAM_PROFILES = [
+    {"name": "high", "depth": (640, 480, 30), "color": (1280, 720, 30)},
+    {"name": "safe", "depth": (640, 480, 30), "color": (640, 480, 30)},
+]
+REQUESTED_STREAM_PROFILE = os.environ.get("REALSENSE_STREAM_PROFILE", "auto").lower()
+
+
+def make_config(profile):
+    config = rs.config()
+    depth_w, depth_h, depth_fps = profile["depth"]
+    color_w, color_h, color_fps = profile["color"]
+    config.enable_stream(rs.stream.depth, depth_w, depth_h, rs.format.z16, depth_fps)
+    config.enable_stream(rs.stream.color, color_w, color_h, rs.format.bgr8, color_fps)
+    return config
+
+
+def reset_realsense_devices():
+    try:
+        devices = rs.context().query_devices()
+        if len(devices) == 0:
+            return False
+        print("🔄 正在送出 RealSense hardware reset...")
+        for dev in devices:
+            dev.hardware_reset()
+        time.sleep(5.0)
+        return True
+    except Exception as e:
+        print(f"⚠️ 無法 reset RealSense: {e}")
+        return False
+
+
+def start_pipeline_with_fallback(pipeline):
+    last_error = None
+    max_retries = 3
+    profiles = STREAM_PROFILES
+    if REQUESTED_STREAM_PROFILE != "auto":
+        profiles = [p for p in STREAM_PROFILES if p["name"] == REQUESTED_STREAM_PROFILE]
+        if not profiles:
+            valid_names = ", ".join(["auto"] + [p["name"] for p in STREAM_PROFILES])
+            raise RuntimeError(f"Invalid REALSENSE_STREAM_PROFILE={REQUESTED_STREAM_PROFILE}. Use: {valid_names}")
+
+    for stream_profile in profiles:
+        config = make_config(stream_profile)
+        for attempt in range(1, max_retries + 1):
+            try:
+                print(f"⏳ 嘗試 {stream_profile['name']} profile (第 {attempt}/{max_retries} 次)...")
+                active_profile = pipeline.start(config)
+                print(f"🟢 啟動成功！使用 {stream_profile['name']} profile。")
+                return active_profile, stream_profile
+            except RuntimeError as e:
+                last_error = e
+                print(f"⚠️ 啟動失敗: {e}")
+                if attempt == 1:
+                    reset_realsense_devices()
+                else:
+                    time.sleep(1.0)
+        print(f"⚠️ {stream_profile['name']} profile 失敗，嘗試下一個設定...")
+    raise RuntimeError("RealSense 啟動失敗：所有解析度設定都無法開始串流。") from last_error
 
 def get_timestamp_str():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -80,12 +137,9 @@ def start():
     recorder = None
     
     pipeline = rs.pipeline()
-    config = rs.config()
-    config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-    config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 30)
 
     try:
-        profile = pipeline.start(config)
+        profile, selected_stream_profile = start_pipeline_with_fallback(pipeline)
         align = rs.align(rs.stream.color)
         colorizer = rs.colorizer()
         intrinsics = profile.get_stream(rs.stream.color).as_video_stream_profile().get_intrinsics()
@@ -105,11 +159,14 @@ def start():
             depth_colormap = np.asanyarray(colorizer.colorize(depth_f).get_data())
 
             # 3D 資訊
-            depth_mm = depth_img_raw[CENTER_Y, CENTER_X]
+            img_h, img_w = depth_img_raw.shape[:2]
+            center_x = img_w // 2
+            center_y = img_h // 2
+            depth_mm = depth_img_raw[center_y, center_x]
             depth_m = depth_mm / 1000.0
             coord_text = f"X:0.0 Y:0.0 Z:{depth_m:.2f}m"
             if depth_m > 0:
-                p = rs.rs2_deproject_pixel_to_point(intrinsics, [CENTER_X, CENTER_Y], depth_m)
+                p = rs.rs2_deproject_pixel_to_point(intrinsics, [center_x, center_y], depth_m)
                 coord_text = f"X:{p[0]:.2f}m Y:{p[1]:.2f}m Z:{p[2]:.2f}m"
 
             # 手機畫面
