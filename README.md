@@ -16,6 +16,8 @@ macOS cannot reliably pass RealSense USB devices into Linux containers.
   - pure color video
   - pure depth visualization video
 - Opens a TCP control server on port `8888`.
+- Includes a prebuilt macOS Python 3.11 RealSense artifact so most users do
+  not need to compile Librealsense from source.
 
 ## Requirements
 
@@ -48,7 +50,9 @@ The setup script will:
 - use your existing `python3.11`, or install `python@3.11` with Homebrew if missing
 - create `.venv`
 - install Python dependencies
-- build Librealsense 2.57.7 with `FORCE_RSUSB_BACKEND=ON`
+- install the prebuilt Apple Silicon Librealsense 2.57.7 artifact from `artifacts/` when available
+- build Librealsense 2.57.7 with `FORCE_RSUSB_BACKEND=ON` only if the artifact is missing
+  or the Mac is Intel
 - install `pyrealsense2` into `.venv`
 
 If Python 3.11 is installed at a custom path:
@@ -65,8 +69,42 @@ If you prefer to run each step yourself:
 xcode-select --install
 brew install cmake pkg-config libusb openssl
 ./scripts/bootstrap_macos.sh
+./scripts/install_realsense_artifact_macos.sh
+```
+
+If the prebuilt artifact does not work on a Mac, rebuild locally:
+
+```bash
 ./scripts/build_librs_macos.sh
 ```
+
+## Included Prebuilt RealSense Artifact
+
+This repo tracks:
+
+```text
+artifacts/realsense-macos-python311-2.57.7.tar.gz
+```
+
+It contains the compiled `librealsense2` dynamic libraries and `pyrealsense2`
+Python 3.11 extension from the original Mac build.
+
+SHA256:
+
+```text
+5167537bf6a73455fac1bf87ae0a438f6464ad244028d857d1e3916939c1ec5c
+```
+
+Compatibility notes:
+
+- Intended for Apple Silicon macOS with Python 3.11.
+- Built from Librealsense 2.57.7.
+- Binary architecture: `arm64`.
+- Uses the `FORCE_RSUSB_BACKEND=ON` build style that works better on Apple
+  Silicon Macs.
+- Intel Macs should run `./scripts/build_librs_macos.sh` instead.
+- If another Apple Silicon Mac cannot import `pyrealsense2`, run
+  `./scripts/build_librs_macos.sh` on that Mac instead.
 
 ## Run
 

@@ -40,4 +40,4 @@ tar -C "$ROOT_DIR/artifacts" -czf \
   "realsense-macos-python311-2.57.7"
 
 echo "Created: $ROOT_DIR/artifacts/realsense-macos-python311-2.57.7.tar.gz"
-echo "Do not commit artifacts by default; upload it to GitHub Releases if needed."
+echo "This repo is configured to commit the tarball, but not the extracted artifact directory."

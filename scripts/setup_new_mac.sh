@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-python3.11}"
+ARTIFACT_TARBALL="$ROOT_DIR/artifacts/realsense-macos-python311-2.57.7.tar.gz"
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
   echo "This setup script is for macOS."
@@ -47,8 +48,16 @@ fi
 echo "==> Creating Python environment"
 PYTHON_BIN="$PYTHON_BIN" ./scripts/bootstrap_macos.sh
 
-echo "==> Building Librealsense for this Mac"
-PYTHON_BIN="$PYTHON_BIN" ./scripts/build_librs_macos.sh
+if [[ "$(uname -m)" == "arm64" && -f "$ARTIFACT_TARBALL" ]]; then
+  echo "==> Installing prebuilt Librealsense artifact"
+  PYTHON_BIN="$PYTHON_BIN" ./scripts/install_realsense_artifact_macos.sh "$ARTIFACT_TARBALL"
+elif [[ "$(uname -m)" != "arm64" ]]; then
+  echo "==> Prebuilt artifact is Apple Silicon arm64 only; building Librealsense for this Mac"
+  PYTHON_BIN="$PYTHON_BIN" ./scripts/build_librs_macos.sh
+else
+  echo "==> Prebuilt artifact not found; building Librealsense for this Mac"
+  PYTHON_BIN="$PYTHON_BIN" ./scripts/build_librs_macos.sh
+fi
 
 cat <<'EOF'
 

@@ -8,7 +8,9 @@ rs_env/
 
 dataset/
 output/
-artifacts/
+artifacts/*
+!artifacts/
+!artifacts/*.tar.gz
 third_party/
 *.bag
 *.mp4
