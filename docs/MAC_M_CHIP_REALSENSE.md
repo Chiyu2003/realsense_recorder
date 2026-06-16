@@ -18,7 +18,8 @@ camera usable on macOS.
 
 If you are using the prebuilt Apple Silicon artifact, you only need Python 3.11
 and the Python dependencies. Homebrew is not required if Python 3.11 is already
-installed.
+installed. If `wheelhouse/*.whl` is present, the Python dependencies install
+locally without PyPI.
 
 Create the Python environment:
 
@@ -93,6 +94,25 @@ To refresh the artifact from a local build, run:
 ```bash
 ./scripts/collect_local_realsense_artifacts.sh
 ```
+
+## Python Wheelhouse
+
+The repo can also track Python wheels for Apple Silicon:
+
+```text
+wheelhouse/numpy-*.whl
+wheelhouse/opencv_python-*.whl
+```
+
+To refresh them:
+
+```bash
+./scripts/collect_python_wheels_macos.sh
+```
+
+When `wheelhouse/` exists, `scripts/bootstrap_macos.sh` and
+`scripts/install_realsense_artifact_macos.sh` install with `--no-index`, so the
+other Mac does not need network access to PyPI.
 
 The install script rewrites the copied binary paths to use `@loader_path`, so
 the Python extension can find `librealsense2` inside the virtual environment

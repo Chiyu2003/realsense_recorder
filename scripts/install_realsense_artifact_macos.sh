@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-python3.11}"
 VENV_DIR="${VENV_DIR:-$ROOT_DIR/.venv}"
 ARTIFACT_TARBALL="${1:-$ROOT_DIR/artifacts/realsense-macos-python311-2.57.7.tar.gz}"
+WHEELHOUSE_DIR="${WHEELHOUSE_DIR:-$ROOT_DIR/wheelhouse}"
 TMP_DIR="$(mktemp -d)"
 
 cleanup() {
@@ -26,8 +27,14 @@ if [[ ! -x "$VENV_DIR/bin/python" ]]; then
 fi
 
 source "$VENV_DIR/bin/activate"
-python -m pip install --upgrade pip
-python -m pip install -r "$ROOT_DIR/requirements.txt"
+if compgen -G "$WHEELHOUSE_DIR/*.whl" >/dev/null; then
+  echo "Installing Python dependencies from local wheelhouse: $WHEELHOUSE_DIR"
+  python -m pip install --no-index --find-links "$WHEELHOUSE_DIR" -r "$ROOT_DIR/requirements.txt"
+else
+  echo "Local wheelhouse not found; installing Python dependencies from PyPI."
+  python -m pip install --upgrade pip
+  python -m pip install -r "$ROOT_DIR/requirements.txt"
+fi
 
 tar -xzf "$ARTIFACT_TARBALL" -C "$TMP_DIR"
 ARTIFACT_DIR="$(find "$TMP_DIR" -maxdepth 1 -type d -name 'realsense-macos-python311-*' | head -n 1)"

@@ -18,6 +18,8 @@ macOS cannot reliably pass RealSense USB devices into Linux containers.
 - Opens a TCP control server on port `8888`.
 - Includes a prebuilt macOS Python 3.11 RealSense artifact so most users do
   not need to compile Librealsense from source.
+- Includes a local Python wheelhouse for Apple Silicon so setup can install
+  `numpy` and `opencv-python` without PyPI.
 
 ## Requirements
 
@@ -51,7 +53,7 @@ The setup script will:
 - use your existing `python3.11`
 - install `python@3.11` with Homebrew if Python 3.11 is missing and Homebrew exists
 - create `.venv`
-- install Python dependencies
+- install Python dependencies from local `wheelhouse/` when available
 - install the prebuilt Apple Silicon Librealsense 2.57.7 artifact from `artifacts/` when available
 - build Librealsense 2.57.7 with `FORCE_RSUSB_BACKEND=ON` only if the artifact is missing
   or the Mac is Intel
@@ -66,6 +68,40 @@ If Python 3.11 is installed at a custom path:
 ```bash
 PYTHON_BIN=/path/to/python3.11 ./scripts/setup_new_mac.sh
 ```
+
+## Portable Offline Package
+
+For Apple Silicon Macs with Python 3.11, this repo can be used without
+Homebrew, PyPI, or local Librealsense compilation.
+
+The portable pieces are:
+
+```text
+artifacts/realsense-macos-python311-2.57.7.tar.gz
+wheelhouse/*.whl
+requirements.txt
+scripts/setup_new_mac.sh
+```
+
+On the build Mac, refresh the portable package files after rebuilding
+Librealsense or changing Python dependencies:
+
+```bash
+./scripts/collect_local_realsense_artifacts.sh
+./scripts/collect_python_wheels_macos.sh
+```
+
+On another Apple Silicon Mac:
+
+```bash
+git clone git@github.com:Chiyu2003/realsense_recorder.git
+cd realsense_recorder
+./scripts/setup_new_mac.sh
+```
+
+The other Mac still needs Python 3.11 installed. Do not copy `.venv` directly;
+virtual environments can contain machine-specific paths. Recreate `.venv` with
+the setup script instead.
 
 ## Manual Setup
 
