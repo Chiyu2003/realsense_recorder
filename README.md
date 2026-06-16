@@ -29,6 +29,7 @@ macOS cannot reliably pass RealSense USB devices into Linux containers.
 git clone <your-github-repo-url>
 cd realsense-recorder-mac
 ./scripts/bootstrap_macos.sh
+./scripts/build_librs_macos.sh
 ```
 
 If the script is not executable after cloning:
@@ -89,7 +90,12 @@ REALSENSE_OUTPUT_ROOT=output python realsense_recorder.py
 - `realsense_recorder.py`: main recorder for local keyboard and TCP control.
 - `remote_stream_server.py`: alternate server that also streams JPEG preview
   frames over TCP using a small binary packet protocol.
+- `scripts/build_librs_macos.sh`: rebuilds Librealsense 2.57.7 with the Apple
+  Silicon-friendly Python binding settings.
+- `scripts/install_realsense_artifact_macos.sh`: installs a prebuilt local
+  RealSense artifact tarball into `.venv`.
 - `tools/send_command.py`: tiny TCP command sender for testing.
+- `docs/MAC_M_CHIP_REALSENSE.md`: details about the M chip Librealsense build.
 
 ## Troubleshooting
 

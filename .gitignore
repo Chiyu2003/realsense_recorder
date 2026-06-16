@@ -8,6 +8,8 @@ rs_env/
 
 dataset/
 output/
+artifacts/
+third_party/
 *.bag
 *.mp4
 *.mov

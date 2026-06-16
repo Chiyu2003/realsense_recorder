@@ -10,3 +10,6 @@ echo
 echo "Setup complete."
 echo "Activate with: source .venv/bin/activate"
 echo "Run recorder: python realsense_recorder.py"
+echo
+echo "If pyrealsense2 is missing on Apple Silicon, run:"
+echo "  ./scripts/build_librs_macos.sh"

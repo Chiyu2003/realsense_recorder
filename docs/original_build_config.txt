@@ -1,0 +1,30 @@
+Original working Mac build summary:
+
+Librealsense source directory:
+  librealsense-2.57.7
+
+Installed Python module observed at:
+  rs_env/lib/python3.11/site-packages/pyrealsense2.cpython-311-darwin.so
+
+Python module version:
+  2.57.7
+
+CMakeCache values from the working build:
+  BUILD_EXAMPLES:BOOL=ON
+  BUILD_GRAPHICAL_EXAMPLES:BOOL=ON
+  BUILD_PYTHON_BINDINGS:BOOL=ON
+  BUILD_TOOLS:BOOL=ON
+  CHECK_FOR_UPDATES:BOOL=OFF
+  CMAKE_BUILD_TYPE:STRING=Release
+  CMAKE_INSTALL_PREFIX:PATH=/usr/local
+  FORCE_RSUSB_BACKEND:BOOL=ON
+  IMPORT_DEPTH_CAM_FW:BOOL=ON
+  PYTHON_EXECUTABLE:FILEPATH=/Users/chiyu.li/nthu/hsnl/realsense/rs_env/bin/python
+
+The portable repo script intentionally builds fewer extras:
+  BUILD_EXAMPLES=OFF
+  BUILD_GRAPHICAL_EXAMPLES=OFF
+  BUILD_TOOLS=OFF
+  BUILD_UNIT_TESTS=OFF
+
+The recorder only needs the SDK library and Python bindings.
