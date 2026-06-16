@@ -61,6 +61,9 @@ for dylib in "$SITE_PACKAGES"/*.dylib; do
   install_name_tool \
     -change /opt/homebrew/opt/libusb/lib/libusb-1.0.0.dylib @loader_path/libusb-1.0.0.dylib \
     "$dylib" 2>/dev/null || true
+  install_name_tool \
+    -change /usr/local/opt/libusb/lib/libusb-1.0.0.dylib @loader_path/libusb-1.0.0.dylib \
+    "$dylib" 2>/dev/null || true
   install_name_tool -id "@loader_path/$(basename "$dylib")" "$dylib" 2>/dev/null || true
   codesign --force --sign - "$dylib" >/dev/null 2>&1 || true
 done
