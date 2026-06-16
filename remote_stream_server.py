@@ -22,7 +22,6 @@ for d in [BAG_DIR, MP4_DIR, COLOR_DIR, DEPTH_VIS_DIR, DEPTH_RAW_DIR, LOG_3D_DIR]
     d.mkdir(parents=True, exist_ok=True)
 
 # 變數
-active_convert_threads = []
 running = True
 is_recording = False
 latest_preview_frame = None
@@ -30,7 +29,6 @@ remote_cmd_queue = []
 current_conn = None
 intrinsics = None
 current_bag_path = None
-current_mp4_path = None
 
 CENTER_X = 640
 CENTER_Y = 360
@@ -38,58 +36,7 @@ CENTER_Y = 360
 def get_timestamp_str():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# --- 2. 背景轉檔邏輯 (移植自原版) ---
-def bg_convert_worker(bag_path, mp4_main_path):
-    try:
-        bg_pipeline = rs.pipeline()
-        bg_config = rs.config()
-        bg_config.enable_device_from_file(str(bag_path), repeat_playback=False)
-        profile = bg_pipeline.start(bg_config)
-        playback = profile.get_device().as_playback()
-        playback.set_real_time(False)
-        
-        bg_align = rs.align(rs.stream.color)
-        bg_colorizer = rs.colorizer()
-        
-        p = Path(mp4_main_path)
-        mp4_color_path = p.parent / f"{p.stem}_pure_color.mp4"
-        mp4_depth_path = p.parent / f"{p.stem}_pure_depth.mp4"
-        
-        writer_main = None
-        writer_color = None
-        writer_depth = None
-        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        
-        while True:
-            try: frames = bg_pipeline.wait_for_frames(timeout_ms=1000)
-            except: break
-            aligned_frames = bg_align.process(frames)
-            depth_f = aligned_frames.get_depth_frame()
-            color_f = aligned_frames.get_color_frame()
-            if not depth_f or not color_f: continue
-            
-            color_img = np.asanyarray(color_f.get_data())
-            depth_color = np.asanyarray(bg_colorizer.colorize(depth_f).get_data())
-            
-            if writer_main is None:
-                h, w = color_img.shape[:2]
-                writer_main = cv2.VideoWriter(str(mp4_main_path), fourcc, 30, (w*2, h))
-                writer_color = cv2.VideoWriter(str(mp4_color_path), fourcc, 30, (w, h))
-                writer_depth = cv2.VideoWriter(str(mp4_depth_path), fourcc, 30, (w, h))
-            
-            writer_main.write(np.hstack((color_img, depth_color)))
-            writer_color.write(color_img)
-            writer_depth.write(depth_color)
-            
-        if writer_main: writer_main.release()
-        if writer_color: writer_color.release()
-        if writer_depth: writer_depth.release()
-        bg_pipeline.stop()
-        print(f"🎉 影片轉換成功: {p.name}")
-    except Exception as e:
-        print(f"❌ 轉檔失敗: {e}")
-
-# --- 3. Socket 服務 ---
+# --- 2. Socket 服務 ---
 def send_packet(conn, p_type, data):
     try:
         header = struct.pack("<BL", p_type, len(data))
@@ -127,10 +74,10 @@ def socket_server_worker():
         except: continue
     server.close()
 
-# --- 4. 主程式 ---
+# --- 3. 主程式 ---
 def start():
     global running, latest_preview_frame, is_recording, current_conn, intrinsics
-    global current_bag_path, current_mp4_path
+    global current_bag_path
     recorder = None
     
     pipeline = rs.pipeline()
@@ -193,28 +140,16 @@ def start():
                     if not is_recording:
                         ts = get_timestamp_str()
                         current_bag_path = (BAG_DIR / f"video_{ts}.bag").resolve()
-                        current_mp4_path = (MP4_DIR / f"video_{ts}.mp4").resolve()
                         recorder = rs.recorder(str(current_bag_path), profile.get_device())
                         is_recording = True
                         if current_conn: send_packet(current_conn, 2, b"REC Started")
                     else:
                         recorder = None 
                         is_recording = False
-                        
-                        # 2. 延遲 1 秒，確保 Recorder 完全釋放檔案
-                        def delayed_convert(b, m):
-                            time.sleep(1.0)
-                            bg_convert_worker(b, m)
-                            
-                        if current_bag_path and current_mp4_path:
-                            t = threading.Thread(
-                                target=delayed_convert,
-                                args=(current_bag_path, current_mp4_path),
-                                daemon=True,
-                            )
-                            t.start()
-                            active_convert_threads.append(t)
-                        if current_conn: send_packet(current_conn, 2, b"REC Stopped & Converting...")
+                        if current_conn:
+                            send_packet(current_conn, 2, f"REC Stopped: {current_bag_path}".encode())
+                        print(f"⏹️ 錄影停止，原始 .bag 已保存: {current_bag_path}")
+                        print(f"   需要 MP4 時再執行: python tools/convert_bag_to_mp4.py {current_bag_path}")
 
     finally:
         pipeline.stop()

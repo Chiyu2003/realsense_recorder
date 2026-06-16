@@ -10,7 +10,8 @@ macOS cannot reliably pass RealSense USB devices into Linux containers.
 - Captures synchronized color and depth frames from RealSense.
 - Saves snapshots under `dataset/snapshot/`.
 - Records `.bag` files under `dataset/bag/`.
-- Converts recorded `.bag` files into three MP4 outputs under `dataset/mp4/`:
+- Converts recorded `.bag` files later with a separate tool into three MP4
+  outputs under `dataset/mp4/`:
   - side-by-side color/depth preview
   - pure color video
   - pure depth visualization video
@@ -80,6 +81,35 @@ Keyboard controls in the OpenCV window:
 - `r`: start or stop recording
 - `q`: quit safely
 
+Recording only saves a `.bag` file. It does not convert to MP4 while recording,
+so capture stays lighter and less likely to drop frames.
+
+## Convert Recordings
+
+Convert one recording:
+
+```bash
+python tools/convert_bag_to_mp4.py dataset/bag/video_YYYYMMDD_HHMMSS.bag
+```
+
+Convert every `.bag` file under `dataset/bag/`:
+
+```bash
+python tools/convert_bag_to_mp4.py
+```
+
+The converter writes:
+
+- `dataset/mp4/video_*.mp4`: side-by-side color/depth preview
+- `dataset/mp4/video_*_pure_color.mp4`: pure color video
+- `dataset/mp4/video_*_pure_depth.mp4`: pure depth visualization video
+
+If the MP4 files already exist, add `--overwrite`:
+
+```bash
+python tools/convert_bag_to_mp4.py --overwrite
+```
+
 ## Remote Control
 
 The recorder listens on TCP port `8888`.
@@ -112,6 +142,12 @@ Change output folder:
 REALSENSE_OUTPUT_ROOT=output python realsense_recorder.py
 ```
 
+Use the same environment variable when converting recordings from that folder:
+
+```bash
+REALSENSE_OUTPUT_ROOT=output python tools/convert_bag_to_mp4.py
+```
+
 ## Files
 
 - `realsense_recorder.py`: main recorder for local keyboard and TCP control.
@@ -123,6 +159,8 @@ REALSENSE_OUTPUT_ROOT=output python realsense_recorder.py
 - `scripts/install_realsense_artifact_macos.sh`: installs a prebuilt local
   RealSense artifact tarball into `.venv`.
 - `tools/send_command.py`: tiny TCP command sender for testing.
+- `tools/convert_bag_to_mp4.py`: converts saved `.bag` recordings into MP4
+  files after capture.
 - `docs/MAC_M_CHIP_REALSENSE.md`: details about the M chip Librealsense build.
 
 ## Troubleshooting

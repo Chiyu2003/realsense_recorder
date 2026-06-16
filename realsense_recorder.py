@@ -10,7 +10,6 @@ import socket
 from pathlib import Path
 
 # 全域生命週期變數
-active_convert_threads = []  
 running = True  
 is_recording = False
 pipeline_started = False
@@ -56,75 +55,6 @@ CENTER_Y = 360
 def get_timestamp_str():
     now = datetime.datetime.now()
     return now.strftime("%Y%m%d_%H%M%S_%f")[:-3]
-
-def bg_convert_worker(bag_path, mp4_main_path):
-    """ 🚀 核心重構：獨立背景執行緒，一口氣將 .bag 拆分並輸出三組獨立影片 """
-    try:
-        bg_pipeline = rs.pipeline()
-        bg_config = rs.config()
-        bg_config.enable_device_from_file(str(bag_path), repeat_playback=False)
-        profile = bg_pipeline.start(bg_config)
-        playback = profile.get_device().as_playback()
-        playback.set_real_time(False) # 關閉即時，全速解包
-        
-        bg_align = rs.align(rs.stream.color)
-        bg_colorizer = rs.colorizer()
-        
-        # 定義三路影片的輸出路徑
-        p = Path(mp4_main_path)
-        mp4_color_path = p.parent / f"{p.stem}_pure_color.mp4"
-        mp4_depth_path = p.parent / f"{p.stem}_pure_depth.mp4"
-        
-        writer_main = None   # 左右拼接版
-        writer_color = None  # 純彩色版
-        writer_depth = None  # 純深度彩虹版
-        
-        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        
-        while True:
-            try: 
-                frames = bg_pipeline.wait_for_frames(timeout_ms=1000)
-            except RuntimeError: 
-                break # 讀取完畢
-                
-            aligned_frames = bg_align.process(frames)
-            depth_frame = aligned_frames.get_depth_frame()
-            color_frame = aligned_frames.get_color_frame()
-            if not depth_frame or not color_frame: continue
-                
-            color_img = np.asanyarray(color_frame.get_data())
-            depth_colormap_raw = np.asanyarray(bg_colorizer.colorize(depth_frame).get_data())
-            
-            # A. 建立拼接視窗 (為了防止檔案過大，拼接版維持 640x360 縮放)
-            preview_color = cv2.resize(color_img, (640, 360))
-            preview_depth = cv2.resize(depth_colormap_raw, (640, 360))
-            composite_main = np.hstack((preview_color, preview_depth))
-            
-            # 初始化三個寫入器 (純彩色與純深度影片採用 1280x720 高清無損尺寸)
-            if writer_main is None:
-                h_main, w_main = composite_main.shape[:2]
-                h_raw, w_raw = color_img.shape[:2]
-                
-                writer_main = cv2.VideoWriter(str(mp4_main_path), fourcc, 30, (w_main, h_main))
-                writer_color = cv2.VideoWriter(str(mp4_color_path), fourcc, 30, (w_raw, h_raw))
-                writer_depth = cv2.VideoWriter(str(mp4_depth_path), fourcc, 30, (w_raw, h_raw))
-            
-            # 三路同時灌入數據落盤
-            writer_main.write(composite_main)
-            writer_color.write(color_img)
-            writer_depth.write(depth_colormap_raw)
-            
-        # 安全關閉所有寫入器
-        if writer_main is not None: writer_main.release()
-        if writer_color is not None: writer_color.release()
-        if writer_depth is not None: writer_depth.release()
-        bg_pipeline.stop()
-        print("\n🎉 [背景自動拆分成功] 三組影片已安全生成：")
-        print(f"   1. 拼接預覽：{p.name}")
-        print(f"   2. 純淨彩色：{mp4_color_path.name}")
-        print(f"   3. 純淨深度：{mp4_depth_path.name}")
-    except Exception as e:
-        print(f"\n❌ [背景多路轉檔失敗] 發生錯誤: {e}")
 
 def socket_server_worker():
     global running, remote_cmd_queue
@@ -283,33 +213,16 @@ try:
                 is_recording = True
                 print(f"🔴 [Remote/Local 開始錄製影像數據包]: {bag_filename}")
             else:
-                dev = profile.get_device()
                 recorder = None 
-                
-                # 背景轉檔的主路徑
-                mp4_filename = f"video_{current_ts_str}.mp4"
-                mp4_path = MP4_DIR / mp4_filename
-                
-                # 🚀 交給改裝後的背景 worker，一次噴出 3 組影片
-                convert_thread = threading.Thread(target=bg_convert_worker, args=(current_bag_path, mp4_path))
-                convert_thread.daemon = True
-                convert_thread.start()
-                active_convert_threads.append(convert_thread) 
-                
                 is_recording = False
-                print("⏹️ [Remote/Local 停止錄製] 原始數據已保存。背景【三路獨立影片】自動解包拆分中...")
+                print(f"⏹️ [Remote/Local 停止錄製] 原始 .bag 已保存: {current_bag_path}")
+                print(f"   需要 MP4 時再執行: python tools/convert_bag_to_mp4.py {current_bag_path}")
                 
         elif active_cmd == 'q':
             running = False
             break
 finally:
     running = False
-    try:
-        active_convert_threads = [t for t in active_convert_threads if t.is_alive()]
-        if len(active_convert_threads) > 0:
-            print(f"\n⏳ [安全機制] 正在等待最後 {len(active_convert_threads)} 個三路拆分轉檔執行緒安全寫入...")
-            for t in active_convert_threads: t.join() 
-    except: pass
     if pipeline_started:
         try: pipeline.stop()
         except: pass
