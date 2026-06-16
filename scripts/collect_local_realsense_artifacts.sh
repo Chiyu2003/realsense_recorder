@@ -19,6 +19,7 @@ if [[ ! -f "$LIBUSB_DYLIB" ]]; then
 fi
 
 mkdir -p "$ARTIFACT_DIR"
+chmod u+w "$ARTIFACT_DIR"/* 2>/dev/null || true
 
 cp "$SOURCE_RELEASE_DIR"/librealsense2.2.57.7.dylib "$ARTIFACT_DIR"/
 cp "$SOURCE_RELEASE_DIR"/librealsense2.2.57.dylib "$ARTIFACT_DIR"/
@@ -27,6 +28,7 @@ cp "$SOURCE_RELEASE_DIR"/pyrealsense2.2.57.7.cpython-311-darwin.so "$ARTIFACT_DI
 cp "$SOURCE_RELEASE_DIR"/pyrealsense2.2.57.cpython-311-darwin.so "$ARTIFACT_DIR"/
 cp "$SOURCE_RELEASE_DIR"/pyrealsense2.cpython-311-darwin.so "$ARTIFACT_DIR"/
 cp "$LIBUSB_DYLIB" "$ARTIFACT_DIR"/
+chmod u+w "$ARTIFACT_DIR"/*
 
 for so in "$ARTIFACT_DIR"/pyrealsense2*.so; do
   install_name_tool \

@@ -50,8 +50,10 @@ print(sysconfig.get_paths()["purelib"])
 PY
 )"
 
+chmod u+w "$SITE_PACKAGES"/*.dylib "$SITE_PACKAGES"/pyrealsense2*.so 2>/dev/null || true
 cp "$ARTIFACT_DIR"/*.dylib "$SITE_PACKAGES"/
 cp "$ARTIFACT_DIR"/pyrealsense2*.so "$SITE_PACKAGES"/
+chmod u+w "$SITE_PACKAGES"/*.dylib "$SITE_PACKAGES"/pyrealsense2*.so
 
 for so in "$SITE_PACKAGES"/pyrealsense2*.so; do
   install_name_tool \

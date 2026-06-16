@@ -77,7 +77,7 @@ artifacts/realsense-macos-python311-2.57.7.tar.gz
 SHA256:
 
 ```text
-228e4637e701d3dc61061793bc8d9003d77514445e191761083569dbb7b9033d
+d7e0807e439fd49260f0cb5cea3eeab86a040ac9909c10f30ba20ffa7a829f58
 ```
 
 Compatibility:
