@@ -3,6 +3,7 @@ set -euo pipefail
 
 LIBRS_VERSION="${LIBRS_VERSION:-2.57.7}"
 BUILD_JOBS="${BUILD_JOBS:-4}"
+PYTHON_BIN="${PYTHON_BIN:-python3.11}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENV_DIR="${VENV_DIR:-$ROOT_DIR/.venv}"
 SOURCE_DIR="${SOURCE_DIR:-$ROOT_DIR/third_party/librealsense-$LIBRS_VERSION}"
@@ -10,7 +11,10 @@ BUILD_DIR="${BUILD_DIR:-$SOURCE_DIR/build-macos}"
 ARCHIVE="$ROOT_DIR/third_party/librealsense-$LIBRS_VERSION.tar.gz"
 
 if [[ ! -x "$VENV_DIR/bin/python" ]]; then
-  python3 -m venv "$VENV_DIR"
+  if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+    PYTHON_BIN="python3"
+  fi
+  "$PYTHON_BIN" -m venv "$VENV_DIR"
 fi
 
 source "$VENV_DIR/bin/activate"

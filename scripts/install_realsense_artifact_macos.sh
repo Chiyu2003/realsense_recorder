@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PYTHON_BIN="${PYTHON_BIN:-python3.11}"
 VENV_DIR="${VENV_DIR:-$ROOT_DIR/.venv}"
 ARTIFACT_TARBALL="${1:-$ROOT_DIR/artifacts/realsense-macos-python311-2.57.7.tar.gz}"
 TMP_DIR="$(mktemp -d)"
@@ -18,7 +19,10 @@ if [[ ! -f "$ARTIFACT_TARBALL" ]]; then
 fi
 
 if [[ ! -x "$VENV_DIR/bin/python" ]]; then
-  python3 -m venv "$VENV_DIR"
+  if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+    PYTHON_BIN="python3"
+  fi
+  "$PYTHON_BIN" -m venv "$VENV_DIR"
 fi
 
 source "$VENV_DIR/bin/activate"

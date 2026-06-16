@@ -23,20 +23,41 @@ macOS cannot reliably pass RealSense USB devices into Linux containers.
 - Intel RealSense D435 or compatible camera
 - Camera connected directly to the Mac through a reliable USB 3 cable or hub
 
-## Setup
+## Fast Setup On A New Mac
+
+On the other Mac, run:
 
 ```bash
-git clone <your-github-repo-url>
-cd realsense-recorder-mac
-./scripts/bootstrap_macos.sh
-./scripts/build_librs_macos.sh
+git clone git@github.com:Chiyu2003/realsense_recorder.git
+cd realsense_recorder
+./scripts/setup_new_mac.sh
 ```
 
-If the script is not executable after cloning:
+If macOS opens the Xcode Command Line Tools installer, finish that installer and
+then rerun:
 
 ```bash
-chmod +x scripts/bootstrap_macos.sh
+./scripts/setup_new_mac.sh
+```
+
+The setup script will:
+
+- check Xcode Command Line Tools
+- install Homebrew packages: `cmake`, `pkg-config`, `libusb`, `openssl`, `python@3.11`
+- create `.venv`
+- install Python dependencies
+- build Librealsense 2.57.7 with `FORCE_RSUSB_BACKEND=ON`
+- install `pyrealsense2` into `.venv`
+
+## Manual Setup
+
+If you prefer to run each step yourself:
+
+```bash
+xcode-select --install
+brew install cmake pkg-config libusb openssl python@3.11
 ./scripts/bootstrap_macos.sh
+./scripts/build_librs_macos.sh
 ```
 
 ## Run
@@ -60,7 +81,6 @@ From the same Mac:
 
 ```bash
 python tools/send_command.py s
-python tools/send_command.py r
 python tools/send_command.py r
 python tools/send_command.py q
 ```
@@ -90,6 +110,7 @@ REALSENSE_OUTPUT_ROOT=output python realsense_recorder.py
 - `realsense_recorder.py`: main recorder for local keyboard and TCP control.
 - `remote_stream_server.py`: alternate server that also streams JPEG preview
   frames over TCP using a small binary packet protocol.
+- `scripts/setup_new_mac.sh`: one-command setup for a fresh Mac after cloning.
 - `scripts/build_librs_macos.sh`: rebuilds Librealsense 2.57.7 with the Apple
   Silicon-friendly Python binding settings.
 - `scripts/install_realsense_artifact_macos.sh`: installs a prebuilt local
