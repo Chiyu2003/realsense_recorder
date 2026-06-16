@@ -43,11 +43,18 @@ then rerun:
 The setup script will:
 
 - check Xcode Command Line Tools
-- install Homebrew packages: `cmake`, `pkg-config`, `libusb`, `openssl`, `python@3.11`
+- install Homebrew packages: `cmake`, `pkg-config`, `libusb`, `openssl`
+- use your existing `python3.11`, or install `python@3.11` with Homebrew if missing
 - create `.venv`
 - install Python dependencies
 - build Librealsense 2.57.7 with `FORCE_RSUSB_BACKEND=ON`
 - install `pyrealsense2` into `.venv`
+
+If Python 3.11 is installed at a custom path:
+
+```bash
+PYTHON_BIN=/path/to/python3.11 ./scripts/setup_new_mac.sh
+```
 
 ## Manual Setup
 
@@ -55,7 +62,7 @@ If you prefer to run each step yourself:
 
 ```bash
 xcode-select --install
-brew install cmake pkg-config libusb openssl python@3.11
+brew install cmake pkg-config libusb openssl
 ./scripts/bootstrap_macos.sh
 ./scripts/build_librs_macos.sh
 ```
