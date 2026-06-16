@@ -25,6 +25,9 @@ macOS cannot reliably pass RealSense USB devices into Linux containers.
 - Python 3.11 recommended
 - Intel RealSense D435 or compatible camera
 - Camera connected directly to the Mac through a reliable USB 3 cable or hub
+- Homebrew is optional for Apple Silicon Macs using the included prebuilt
+  artifact. It is required only if Python 3.11 is missing and you want the
+  script to install it, or if Librealsense must be rebuilt from source.
 
 ## Fast Setup On A New Mac
 
@@ -45,15 +48,18 @@ then rerun:
 
 The setup script will:
 
-- check Xcode Command Line Tools
-- install Homebrew packages: `cmake`, `pkg-config`, `libusb`, `openssl`
-- use your existing `python3.11`, or install `python@3.11` with Homebrew if missing
+- use your existing `python3.11`
+- install `python@3.11` with Homebrew if Python 3.11 is missing and Homebrew exists
 - create `.venv`
 - install Python dependencies
 - install the prebuilt Apple Silicon Librealsense 2.57.7 artifact from `artifacts/` when available
 - build Librealsense 2.57.7 with `FORCE_RSUSB_BACKEND=ON` only if the artifact is missing
   or the Mac is Intel
 - install `pyrealsense2` into `.venv`
+
+On Apple Silicon with the included artifact, Homebrew is not required if
+Python 3.11 is already installed. If Python 3.11 is missing and you do not want
+Homebrew, install Python 3.11 from python.org first.
 
 If Python 3.11 is installed at a custom path:
 
@@ -66,8 +72,6 @@ PYTHON_BIN=/path/to/python3.11 ./scripts/setup_new_mac.sh
 If you prefer to run each step yourself:
 
 ```bash
-xcode-select --install
-brew install cmake pkg-config libusb openssl
 ./scripts/bootstrap_macos.sh
 ./scripts/install_realsense_artifact_macos.sh
 ```
@@ -75,6 +79,8 @@ brew install cmake pkg-config libusb openssl
 If the prebuilt artifact does not work on a Mac, rebuild locally:
 
 ```bash
+xcode-select --install
+brew install cmake pkg-config libusb openssl
 ./scripts/build_librs_macos.sh
 ```
 
@@ -92,7 +98,7 @@ Python 3.11 extension from the original Mac build.
 SHA256:
 
 ```text
-5167537bf6a73455fac1bf87ae0a438f6464ad244028d857d1e3916939c1ec5c
+228e4637e701d3dc61061793bc8d9003d77514445e191761083569dbb7b9033d
 ```
 
 Compatibility notes:
@@ -100,6 +106,8 @@ Compatibility notes:
 - Intended for Apple Silicon macOS with Python 3.11.
 - Built from Librealsense 2.57.7.
 - Binary architecture: `arm64`.
+- Bundles `libusb-1.0.0.dylib`, so Apple Silicon users do not need Homebrew
+  just for `libusb`.
 - Uses the `FORCE_RSUSB_BACKEND=ON` build style that works better on Apple
   Silicon Macs.
 - Intel Macs should run `./scripts/build_librs_macos.sh` instead.

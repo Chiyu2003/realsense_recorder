@@ -16,17 +16,9 @@ camera usable on macOS.
 
 ## Recommended Setup
 
-Install Xcode Command Line Tools:
-
-```bash
-xcode-select --install
-```
-
-Install build tools:
-
-```bash
-brew install cmake pkg-config libusb openssl
-```
+If you are using the prebuilt Apple Silicon artifact, you only need Python 3.11
+and the Python dependencies. Homebrew is not required if Python 3.11 is already
+installed.
 
 Create the Python environment:
 
@@ -51,7 +43,16 @@ If the prebuilt artifact does not work on a Mac, rebuild Librealsense and
 install `pyrealsense2` into `.venv`:
 
 ```bash
+xcode-select --install
+brew install cmake pkg-config libusb openssl
 ./scripts/build_librs_macos.sh
+```
+
+Then run:
+
+```bash
+source .venv/bin/activate
+python realsense_recorder.py
 ```
 
 ## If Build Is Slow
@@ -75,7 +76,7 @@ artifacts/realsense-macos-python311-2.57.7.tar.gz
 SHA256:
 
 ```text
-5167537bf6a73455fac1bf87ae0a438f6464ad244028d857d1e3916939c1ec5c
+228e4637e701d3dc61061793bc8d9003d77514445e191761083569dbb7b9033d
 ```
 
 Compatibility:
@@ -83,6 +84,7 @@ Compatibility:
 - macOS `arm64` / Apple Silicon
 - Python 3.11
 - Librealsense 2.57.7
+- Bundled `libusb-1.0.0.dylib`
 
 Intel Macs should rebuild locally with `./scripts/build_librs_macos.sh`.
 
