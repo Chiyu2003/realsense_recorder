@@ -160,8 +160,12 @@ python realsense_recorder.py
 By default the recorder tries `high` mode first, then falls back to `safe` mode
 if the camera fails to start:
 
-- `high`: depth `640x480@30`, color `1280x720@30`
+- `high`: depth `640x480@30`, color `1280x720@15`
 - `safe`: depth `640x480@30`, color `640x480@30`
+
+The `high` profile uses 15 FPS for color because some Mac USB paths can start
+720p@30 but never deliver frames. If your cable/hub is stable, you can raise
+the color FPS in `STREAM_PROFILES`.
 
 If the camera is visible in macOS but fails at stream startup, skip directly to
 safe mode:

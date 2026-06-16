@@ -44,7 +44,7 @@ signal.signal(signal.SIGTERM, handle_shutdown_signal)
 # 2. RealSense stream profiles. Try high quality first, then fall back if USB is unstable.
 pipeline = rs.pipeline()
 STREAM_PROFILES = [
-    {"name": "high", "depth": (640, 480, 30), "color": (1280, 720, 30)},
+    {"name": "high", "depth": (640, 480, 30), "color": (1280, 720, 15)},
     {"name": "safe", "depth": (640, 480, 30), "color": (640, 480, 30)},
 ]
 REQUESTED_STREAM_PROFILE = os.environ.get("REALSENSE_STREAM_PROFILE", "auto").lower()
