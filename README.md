@@ -170,6 +170,22 @@ safe mode:
 REALSENSE_STREAM_PROFILE=safe python realsense_recorder.py
 ```
 
+On macOS 12+ and newer, RealSense/libusb access may require elevated
+privileges. If you see errors like `failed to set power state` or
+`No device connected` even though macOS can see the camera, run with `sudo`:
+
+```bash
+sudo env REALSENSE_STREAM_PROFILE=safe .venv/bin/python realsense_recorder.py
+```
+
+If the preview window does not appear immediately under `sudo`, wait a few
+seconds and check Mission Control/Dock. For remote-only capture, use headless
+mode:
+
+```bash
+sudo env REALSENSE_STREAM_PROFILE=safe REALSENSE_HEADLESS=1 .venv/bin/python realsense_recorder.py
+```
+
 Keyboard controls in the OpenCV window:
 
 - `s`: take snapshot
@@ -231,6 +247,12 @@ You can disable the OpenCV GUI and control the recorder through TCP only:
 REALSENSE_HEADLESS=1 python realsense_recorder.py
 ```
 
+With macOS libusb permissions:
+
+```bash
+sudo env REALSENSE_HEADLESS=1 REALSENSE_STREAM_PROFILE=safe .venv/bin/python realsense_recorder.py
+```
+
 Change output folder:
 
 ```bash
@@ -266,6 +288,18 @@ If RealSense initialization fails:
 - Use a USB 3 cable or powered hub.
 - Close other apps that may be using the camera.
 - Try running once from a normal Terminal, not inside an IDE terminal.
+- Confirm macOS can see the USB device:
+
+```bash
+ioreg -p IOUSB -l -w 0 | grep -i -A 20 "realsense\|intel\|d435\|depth"
+```
+
+- If macOS sees the camera but Python fails with `failed to set power state`,
+  run with `sudo`:
+
+```bash
+sudo env REALSENSE_STREAM_PROFILE=safe .venv/bin/python realsense_recorder.py
+```
 
 If `pyrealsense2` cannot install, check that Python is 3.11:
 

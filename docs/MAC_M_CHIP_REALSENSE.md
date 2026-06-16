@@ -40,6 +40,14 @@ source .venv/bin/activate
 python realsense_recorder.py
 ```
 
+On macOS 12+ and newer, libusb access may require elevated privileges. If the
+camera is visible in USB tools but stream startup fails with `failed to set
+power state` or `No device connected`, run:
+
+```bash
+sudo env REALSENSE_STREAM_PROFILE=safe .venv/bin/python realsense_recorder.py
+```
+
 If the prebuilt artifact does not work on a Mac, rebuild Librealsense and
 install `pyrealsense2` into `.venv`:
 
