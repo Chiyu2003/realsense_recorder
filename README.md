@@ -157,8 +157,9 @@ source .venv/bin/activate
 python realsense_recorder.py
 ```
 
-By default the recorder tries `high` mode first, then falls back to `safe` mode
-if the camera fails to start:
+By default the recorder tries `high` mode first for one camera. When multiple
+cameras are connected, `auto` tries `safe` first so the first camera does not
+reserve too much USB bandwidth before the second camera starts:
 
 - `high`: depth `640x480@30`, color `1280x720@15`
 - `safe`: depth `640x480@30`, color `640x480@30`
@@ -166,6 +167,14 @@ if the camera fails to start:
 The `high` profile uses 15 FPS for color because some Mac USB paths can start
 720p@30 but never deliver frames. If your cable/hub is stable, you can raise
 the color FPS in `STREAM_PROFILES`.
+
+By default the recorder starts up to two connected RealSense cameras and shows
+each camera as one row: color on the left, depth visualization on the right.
+Limit or expand the number of cameras with `REALSENSE_CAMERA_COUNT`:
+
+```bash
+REALSENSE_CAMERA_COUNT=1 python realsense_recorder.py
+```
 
 If the camera is visible in macOS but fails at stream startup, skip directly to
 safe mode:
@@ -195,6 +204,16 @@ Keyboard controls in the OpenCV window:
 - `s`: take snapshot
 - `r`: start or stop recording
 - `q`: quit safely
+
+Snapshots from multiple cameras share one timestamp and use the camera index as
+the source suffix:
+
+- `dataset/snapshot/color/snapshot_YYYYMMDD_HHMMSS_mmm_1_color.png`
+- `dataset/snapshot/depth_vis/snapshot_YYYYMMDD_HHMMSS_mmm_1_depth_vis.png`
+- `dataset/snapshot/depth_raw/snapshot_YYYYMMDD_HHMMSS_mmm_1_depth_raw.npy`
+
+Camera 2 uses the same timestamp with `_2`. The recorder does not save marked
+snapshot images; center markers are preview-only.
 
 Recording only saves a `.bag` file. It does not convert to MP4 while recording,
 so capture stays lighter and less likely to drop frames.
